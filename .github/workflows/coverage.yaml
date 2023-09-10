@@ -1,0 +1,35 @@
+name: coverage
+
+on:
+  push:
+    paths:
+      - "src/**"
+      - "test/**"
+      - "script/**"
+      - ".github/workflows/coverage.yaml"
+      - "codecov.yml"
+
+jobs:
+  run-coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: install:foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: coverage:run
+        run: forge coverage --report lcov && mv lcov.info lcov.txt
+        
+      - name: coverage:upload
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./lcov.txt
+          fail_ci_if_error: true
+          verbose: false
