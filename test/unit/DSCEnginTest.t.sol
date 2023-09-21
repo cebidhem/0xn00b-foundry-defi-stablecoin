@@ -7,6 +7,7 @@ import {DecentralizedStableCoin} from "../../src/DecentralizedStableCoin.sol";
 import {DeployDSC} from "../../script/DeployDSC.s.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/ERC20Mock.sol";
+import {MockFailedCall} from "../mocks/MockFailedCall.sol";
 
 contract DSCEngineTest is Test {
     DeployDSC deployer;
@@ -123,6 +124,17 @@ contract DSCEngineTest is Test {
         assertEq(totalDscMinted, expectedTotalDscMinted);
     }
 
+    function testMintDscFailed() public depositedCollateral {
+        vm.prank(user);
+        vm.mockCallRevert(
+            address(dsc),
+            abi.encodeWithSelector(DecentralizedStableCoin.mint.selector, address(user), AMOUNT_MINT_DSC),
+            abi.encodeWithSelector(DSCEngine.DSCEngine__MintFailed.selector)
+        );
+        vm.expectRevert(DSCEngine.DSCEngine__MintFailed.selector);
+        engine.mintDsc(AMOUNT_MINT_DSC);
+    }
+
     //////////////
     // deposit/mint tests
     //////////////
@@ -199,9 +211,28 @@ contract DSCEngineTest is Test {
     //     engine.liquidate(weth, user, AMOUNT_MINT_DSC);
     //     vm.stopPrank();
 
-    //     uint256 dscuserBalance = dsc.balanceOf(user);
-    //     assertEq(dscuserBalance, 0);
-    //     uint256 userBalance = ERC20Mock(weth).balanceOf(user);
-    //     assertEq(userBalance, STARTING_ERC20_BALANCE);
+    //         uint256 dscuserBalance = dsc.balanceOf(user);
+    //         assertEq(dscuserBalance, 0);
+    //         uint256 userBalance = ERC20Mock(weth).balanceOf(user);
+    //         assertEq(userBalance, STARTING_ERC20_BALANCE);
     // }
+
+    function testGetCollateralTokens() public depositedCollateral {
+        vm.prank(user);
+        address[] memory collateralTokens = engine.getCollateralTokens();
+        assertEq(collateralTokens.length, 2);
+        assertEq(collateralTokens[0], weth);
+    }
+
+    function testGetCollateralBalanceOfUser() public depositedCollateral {
+        vm.prank(user);
+        uint256 balance = engine.getCollateralBalanceOfUser(user, weth);
+        assertEq(balance, AMOUNT_COLLATERAL);
+    }
+
+    function testGetCollateralTokenPriceFeed() public {
+        vm.prank(user);
+        address priceFeed = engine.getCollateralTokenPriceFeed(weth);
+        assertEq(priceFeed, ethUsdPriceFeed);
+    }
 }
