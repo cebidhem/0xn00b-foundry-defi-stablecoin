@@ -238,8 +238,6 @@ contract DSCEngine is ReentrancyGuard {
         }
     }
 
-    function getHealthFactor() external {}
-
     ///////////////
     // private & internal view Functions //
     ///////////////
@@ -353,5 +351,9 @@ contract DSCEngine is ReentrancyGuard {
 
     function getCollateralTokenPriceFeed(address token) external view returns (address) {
         return s_priceFeeds[token];
+    }
+
+    function getHealthFactor(address user) public view returns (uint256) {
+        return _healthFactor(user);
     }
 }
